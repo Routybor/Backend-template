@@ -11,14 +11,15 @@ services:
       KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
       KC_PROXY_HEADERS: "forwarded"
       KC_HTTP_ENABLED: "true"
-    command: start --import-realm
+      KC_HEALTH_ENABLED: "true"
+    command: start-dev --import-realm
     ports:
       - "8180:8080"
     volumes:
       - keycloak_data:/opt/keycloak/data
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/health/ready"]
+      test: ["CMD-SHELL", "exec bash -c 'echo > /dev/tcp/127.0.0.1/8080' || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 15
@@ -42,15 +43,15 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: '0.50'
           memory: 256M
         reservations:
-          cpus: '0.1'
+          cpus: '0.10'
           memory: 64M
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8081/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/health"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
       start_period: 10s
 
@@ -69,14 +70,19 @@ services:
       - "8080:8080"
     networks:
       - microservices
+    depends_on:
+      keycloak:
+        condition: service_started
+      core-service:
+        condition: service_healthy
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: '0.50'
           memory: 256M
         reservations:
-          cpus: '0.1'
+          cpus: '0.10'
           memory: 64M
 
 networks:

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"core-service/dto"
+	"core-service/internal/dto"
 )
 
 type ItemRepository struct {
