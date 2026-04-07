@@ -12,7 +12,6 @@ vendor/
 
 # Environment files
 .env
-*.env.*
 k8s/.env
 
 # Keycloak certificates
