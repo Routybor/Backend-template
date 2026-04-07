@@ -1,4 +1,4 @@
-FROM golang:1.22-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
@@ -7,11 +7,12 @@ RUN apk add --no-cache git ca-certificates
 COPY go.mod go.sum* ./
 RUN go mod download
 
-COPY . .
+COPY cmd ./cmd
+COPY internal ./internal
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w -X main.version=1.0.0" -o gateway .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w -X main.version=1.0.0" -o gateway ./cmd/gateway
 
-FROM alpine:3.19
+FROM alpine:3.21
 
 RUN apk add --no-cache ca-certificates tzdata && \
     addgroup -S app && adduser -S app -G app
@@ -35,4 +36,4 @@ ENV KEYCLOAK_CLIENT_ID=gateway
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD wget -qO- http://localhost:8080/health || exit 1
 
-CMD ["sh", "-c", "./gateway"]
+ENTRYPOINT ["./gateway"]
