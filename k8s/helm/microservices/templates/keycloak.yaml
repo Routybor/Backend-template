@@ -1,0 +1,104 @@
+{{- if .Values.keycloak.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "microservices.fullname" . }}-keycloak-config
+  namespace: {{ .Values.namespace }}
+data:
+  KC_DB: "dev-file"
+  KC_LOG_LEVEL: "INFO"
+  KC_HOSTNAME_STRICT: "false"
+  KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+  KC_PROXY_HEADERS: "forwarded"
+  KC_HTTP_ENABLED: "true"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "microservices.fullname" . }}-keycloak-secret
+  namespace: {{ .Values.namespace }}
+type: Opaque
+stringData:
+  KEYCLOAK_ADMIN_PASSWORD: {{ .Values.keycloak.adminPassword }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "microservices.fullname" . }}-keycloak-data
+  namespace: {{ .Values.namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.storage.keycloakDataSize }}
+  storageClassName: {{ .Values.storage.className }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.keycloak.replicaCount }}
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+        - name: keycloak
+          image: "{{ .Values.keycloak.image.repository }}:{{ .Values.keycloak.image.tag }}"
+          args: ["start", "--import-realm"]
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: {{ include "microservices.fullname" . }}-keycloak-config
+          env:
+            - name: KEYCLOAK_ADMIN
+              value: {{ .Values.keycloak.adminUser }}
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "microservices.fullname" . }}-keycloak-secret
+                  key: KEYCLOAK_ADMIN_PASSWORD
+          resources:
+            {{- toYaml .Values.keycloak.resources | nindent 10 }}
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          volumeMounts:
+            - name: keycloak-data
+              mountPath: /opt/keycloak/data
+      volumes:
+        - name: keycloak-data
+          persistentVolumeClaim:
+            claimName: {{ include "microservices.fullname" . }}-keycloak-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  namespace: {{ .Values.namespace }}
+spec:
+  type: {{ .Values.keycloak.service.type }}
+  ports:
+    - port: {{ .Values.keycloak.service.port }}
+      targetPort: 8080
+  selector:
+    app: keycloak
+{{- end }}

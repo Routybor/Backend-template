@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: core-service
+  namespace: ${K8S_NAMESPACE}
+  labels:
+    app: core-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: ${CORE_SERVICE_PORT}
+      targetPort: ${CORE_SERVICE_PORT}
+      protocol: TCP
+      name: http
+  selector:
+    app: core-service

@@ -1,0 +1,61 @@
+{{- if .Values.coreService.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "microservices.fullname" . }}-core-service-config
+  namespace: {{ .Values.namespace }}
+data:
+  PORT: "8081"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-service
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.coreService.replicaCount }}
+  selector:
+    matchLabels:
+      app: core-service
+  template:
+    metadata:
+      labels:
+        app: core-service
+    spec:
+      containers:
+        - name: core-service
+          image: "{{ .Values.coreService.image.repository }}:{{ .Values.coreService.image.tag }}"
+          ports:
+            - containerPort: 8081
+              name: http
+          envFrom:
+            - configMapRef:
+                name: {{ include "microservices.fullname" . }}-core-service-config
+          resources:
+            {{- toYaml .Values.coreService.resources | nindent 10 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: core-service
+  namespace: {{ .Values.namespace }}
+spec:
+  type: {{ .Values.coreService.service.type }}
+  ports:
+    - port: {{ .Values.coreService.service.port }}
+      targetPort: 8081
+  selector:
+    app: core-service
+{{- end }}

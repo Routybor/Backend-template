@@ -1,0 +1,14 @@
+apiVersion: v2
+name: microservices
+description: A Go microservices boilerplate with Keycloak, API Gateway, and Core Service
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - golang
+  - microservices
+  - keycloak
+  - gateway
+maintainers:
+  - name: Developer
+    email: dev@example.com

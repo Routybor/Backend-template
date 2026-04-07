@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-service
+  namespace: ${K8S_NAMESPACE}
+  labels:
+    app: core-service
+spec:
+  replicas: ${CORE_SERVICE_REPLICAS}
+  selector:
+    matchLabels:
+      app: core-service
+  template:
+    metadata:
+      labels:
+        app: core-service
+    spec:
+      containers:
+        - name: core-service
+          image: ${CORE_SERVICE_IMAGE}
+          ports:
+            - containerPort: ${CORE_SERVICE_PORT}
+              name: http
+          envFrom:
+            - configMapRef:
+                name: core-service-config
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: ${CORE_SERVICE_PORT}
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: ${CORE_SERVICE_PORT}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
