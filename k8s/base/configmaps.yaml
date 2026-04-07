@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-config
+  namespace: ${K8S_NAMESPACE}
+data:
+  KEYCLOAK_ADMIN: "${KEYCLOAK_ADMIN}"
+  KC_DB: "${KEYCLOAK_DB}"
+  KC_LOG_LEVEL: "${KEYCLOAK_LOG_LEVEL}"
+  KC_HOSTNAME_STRICT: "false"
+  KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+  KC_PROXY_HEADERS: "forwarded"
+  KC_HTTP_ENABLED: "true"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+  namespace: ${K8S_NAMESPACE}
+data:
+  GATEWAY_PORT: "${GATEWAY_PORT}"
+  CORE_SERVICE_URL: "http://core-service:${CORE_SERVICE_PORT}"
+  KEYCLOAK_URL: "http://keycloak:8080"
+  KEYCLOAK_REALM: "${KEYCLOAK_REALM}"
+  KEYCLOAK_CLIENT_ID: "${KEYCLOAK_CLIENT_ID}"
+  RATE_LIMIT_REQUESTS: "100"
+  RATE_LIMIT_WINDOW_SEC: "60"
+  CIRCUIT_THRESHOLD: "5"
+  CIRCUIT_TIMEOUT_SEC: "30"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: core-service-config
+  namespace: ${K8S_NAMESPACE}
+data:
+  PORT: "${CORE_SERVICE_PORT}"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm
+  namespace: ${K8S_NAMESPACE}
+data:
+  realm-export.json: |
+    {
+      "id": "${KEYCLOAK_REALM}",
+      "realm": "${KEYCLOAK_REALM}",
+      "enabled": true,
+      "sslRequired": "none",
+      "registrationAllowed": false,
+      "loginWithEmailAllowed": true,
+      "duplicateEmailsAllowed": false,
+      "resetPasswordAllowed": false,
+      "editUsernameAllowed": false,
+      "bruteForceProtected": false,
+      "clients": [
+        {
+          "clientId": "${KEYCLOAK_CLIENT_ID}",
+          "enabled": true,
+          "clientAuthenticatorType": "client-secret",
+          "secret": "${KEYCLOAK_CLIENT_SECRET}",
+          "serviceAccountsEnabled": true,
+          "directAccessGrantsEnabled": true,
+          "publicClient": false,
+          "protocol": "openid-connect",
+          "standardFlowEnabled": false,
+          "implicitFlowEnabled": false,
+          "directGrantsOnly": true
+        }
+      ],
+      "users": [
+        {
+          "username": "testuser",
+          "enabled": true,
+          "emailVerified": true,
+          "email": "testuser@example.com",
+          "requiredActions": [],
+          "credentials": [
+            {
+              "type": "password",
+              "value": "${KEYCLOAK_TESTUSER_PASSWORD}"
+            }
+          ]
+        }
+      ]
+    }

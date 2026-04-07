@@ -1,0 +1,40 @@
+# Binaries and executables
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+app
+
+# Dependency directories
+vendor/
+
+# Environment files
+.env
+*.env.*
+k8s/.env
+
+# Keycloak certificates
+keycloak/certs/*.crt
+keycloak/certs/*.key
+
+# Logs
+*.log
+
+# Testing
+*.test
+lib.test
+coverage.out
+coverage.all
+
+# IDE and System
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Tooling
+cpu.pprof
+mem.pprof
