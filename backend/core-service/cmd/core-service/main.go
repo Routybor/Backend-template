@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"core-service/internal/config"
+	"core-service/internal/dto"
 	"core-service/internal/handler"
 	"core-service/internal/repository"
 	"core-service/internal/service"
+	pb "core-service/proto"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,7 +17,66 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc"
 )
+
+type gRPCServer struct {
+	pb.UnimplementedItemServiceServer
+	itemService *service.ItemService
+}
+
+func (s *gRPCServer) GetAll(ctx context.Context, req *pb.GetAllRequest) (*pb.ListItemsResponse, error) {
+	items := s.itemService.GetAllItems()
+	pbItems := make([]*pb.Item, len(items))
+	for i, item := range items {
+		pbItems[i] = &pb.Item{
+			Id:          item.ID,
+			Name:        item.Name,
+			Description: item.Description,
+			CreatedAt:   0,
+			UpdatedAt:   0,
+		}
+	}
+	return &pb.ListItemsResponse{Items: pbItems, Total: int64(len(items))}, nil
+}
+
+func (s *gRPCServer) GetByID(ctx context.Context, req *pb.GetByIDRequest) (*pb.Item, error) {
+	item, ok := s.itemService.GetItem(req.Id)
+	if !ok {
+		return nil, nil
+	}
+	return &pb.Item{
+		Id:          item.ID,
+		Name:        item.Name,
+		Description: item.Description,
+		CreatedAt:   0,
+		UpdatedAt:   0,
+	}, nil
+}
+
+func (s *gRPCServer) Create(ctx context.Context, req *pb.CreateItemRequest) (*pb.Item, error) {
+	dtoReq := dto.CreateItemRequest{
+		Name:        req.Name,
+		Description: req.Description,
+	}
+	item := s.itemService.CreateItem(dtoReq)
+	return &pb.Item{
+		Id:          item.ID,
+		Name:        item.Name,
+		Description: item.Description,
+		CreatedAt:   0,
+		UpdatedAt:   0,
+	}, nil
+}
+
+func (s *gRPCServer) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
+	success := s.itemService.DeleteItem(req.Id)
+	return &pb.DeleteResponse{Success: success}, nil
+}
+
+func (s *gRPCServer) Health(ctx context.Context, req *pb.HealthRequest) (*pb.HealthResponse, error) {
+	return &pb.HealthResponse{Status: "healthy"}, nil
+}
 
 func main() {
 	slog.Info("starting core-service")
@@ -23,6 +85,21 @@ func main() {
 
 	itemRepo := repository.NewItemRepository()
 	itemService := service.NewItemService(itemRepo)
+
+	go func() {
+		lis, err := net.Listen("tcp", ":"+cfg.GrpcPort)
+		if err != nil {
+			slog.Error("failed to listen for gRPC", "error", err)
+			os.Exit(1)
+		}
+		grpcServer := grpc.NewServer()
+		pb.RegisterItemServiceServer(grpcServer, &gRPCServer{itemService: itemService})
+		slog.Info("gRPC server listening", "port", cfg.GrpcPort)
+		if err := grpcServer.Serve(lis); err != nil {
+			slog.Error("gRPC server failed", "error", err)
+			os.Exit(1)
+		}
+	}()
 
 	itemHandler := handler.NewItemHandler(itemService)
 	healthHandler := handler.NewHealthHandler()
@@ -51,7 +128,7 @@ func main() {
 	}
 
 	go func() {
-		slog.Info("core-service listening", "port", cfg.Port)
+		slog.Info("core-service HTTP listening", "port", cfg.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("server failed", "error", err)
 			os.Exit(1)

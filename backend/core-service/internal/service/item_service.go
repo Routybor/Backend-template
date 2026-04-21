@@ -21,7 +21,7 @@ func (s *ItemService) GetAllItems() []dto.Item {
 
 func (s *ItemService) CreateItem(req dto.CreateItemRequest) dto.Item {
 	log.Printf("Creating item: %s", req.Name)
-	return s.repo.Create(req.Name)
+	return s.repo.Create(req.Name, req.Description)
 }
 
 func (s *ItemService) GetItem(id string) (dto.Item, bool) {
@@ -30,4 +30,8 @@ func (s *ItemService) GetItem(id string) (dto.Item, bool) {
 
 func (s *ItemService) DeleteItem(id string) bool {
 	return s.repo.Delete(id)
+}
+
+func (s *ItemService) UpdateItem(id string, req dto.CreateItemRequest) (dto.Item, bool) {
+	return s.repo.Update(id, req.Name, req.Description)
 }

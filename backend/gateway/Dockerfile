@@ -9,6 +9,7 @@ RUN go mod download
 
 COPY cmd ./cmd
 COPY internal ./internal
+COPY proto ./proto
 
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w -X main.version=1.0.0" -o gateway ./cmd/gateway
 
@@ -28,7 +29,7 @@ USER app
 EXPOSE 8080
 
 ENV GATEWAY_PORT=8080
-ENV CORE_SERVICE_URL=http://core-service:8081
+ENV CORE_SERVICE_GRPC=core-service:9091
 ENV KEYCLOAK_URL=http://keycloak:8080
 ENV KEYCLOAK_REALM=master
 ENV KEYCLOAK_CLIENT_ID=gateway

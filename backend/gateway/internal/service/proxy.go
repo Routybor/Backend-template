@@ -1,50 +1,64 @@
 package service
 
 import (
-	"net/http"
-	"net/http/httputil"
-	"net/url"
-	"time"
+	"context"
+
+	"gateway/internal/config"
+	pb "gateway/proto"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-type ReverseProxy struct {
-	proxy  *httputil.ReverseProxy
-	target *url.URL
-	client *http.Client
+type ItemGrpcClient struct {
+	conn   *grpc.ClientConn
+	client pb.ItemServiceClient
 }
 
-func NewReverseProxy(coreServiceURL string) (*ReverseProxy, error) {
-	target, err := url.Parse(coreServiceURL)
+func NewItemGrpcClient(grpcAddr string) (*ItemGrpcClient, error) {
+	conn, err := grpc.NewClient(
+		grpcAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-		Transport: &http.Transport{
-			MaxIdleConns:        100,
-			MaxIdleConnsPerHost: 10,
-			IdleConnTimeout:     90 * time.Second,
-		},
-	}
-
-	proxy := httputil.NewSingleHostReverseProxy(target)
-	proxy.Transport = client.Transport
-
-	originalDirector := proxy.Director
-	proxy.Director = func(req *http.Request) {
-		originalDirector(req)
-		req.Header.Set("X-Forwarded-For", req.RemoteAddr)
-		req.Header.Set("X-Forwarded-Proto", "http")
-	}
-
-	return &ReverseProxy{
-		proxy:  proxy,
-		target: target,
-		client: client,
+	return &ItemGrpcClient{
+		conn:   conn,
+		client: pb.NewItemServiceClient(conn),
 	}, nil
 }
 
-func (r *ReverseProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r.proxy.ServeHTTP(w, req)
+func (c *ItemGrpcClient) GetAll(ctx context.Context) (*pb.ListItemsResponse, error) {
+	return c.client.GetAll(ctx, &pb.GetAllRequest{})
+}
+
+func (c *ItemGrpcClient) GetByID(ctx context.Context, id string) (*pb.Item, error) {
+	return c.client.GetByID(ctx, &pb.GetByIDRequest{Id: id})
+}
+
+func (c *ItemGrpcClient) Create(ctx context.Context, name, description string) (*pb.Item, error) {
+	return c.client.Create(ctx, &pb.CreateItemRequest{
+		Name:        name,
+		Description: description,
+	})
+}
+
+func (c *ItemGrpcClient) Delete(ctx context.Context, id string) (*pb.DeleteResponse, error) {
+	return c.client.Delete(ctx, &pb.DeleteRequest{Id: id})
+}
+
+func (c *ItemGrpcClient) Close() error {
+	return c.conn.Close()
+}
+
+func (c *ItemGrpcClient) Health(ctx context.Context) (*pb.HealthResponse, error) {
+	return c.client.Health(ctx, &pb.HealthRequest{})
+}
+
+var NewReverseProxy = NewItemGrpcClient
+
+func LoadProxyConfig(cfg *config.Config) (*ItemGrpcClient, error) {
+	return NewItemGrpcClient(cfg.CoreServiceGrpc)
 }

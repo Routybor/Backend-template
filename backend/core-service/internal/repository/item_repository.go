@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"core-service/internal/dto"
 )
@@ -40,17 +41,37 @@ func (r *ItemRepository) GetAll() []dto.Item {
 	return items
 }
 
-func (r *ItemRepository) Create(name string) dto.Item {
+func (r *ItemRepository) Create(name, description string) dto.Item {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	id := r.idSeq.Add(1)
+	now := time.Now().Format(time.RFC3339)
 	item := dto.Item{
-		ID:   fmt.Sprintf("%d", id),
-		Name: name,
+		ID:          fmt.Sprintf("%d", id),
+		Name:        name,
+		Description: description,
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 	r.items[item.ID] = item
 	return item
+}
+
+func (r *ItemRepository) Update(id, name, description string) (dto.Item, bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, ok := r.items[id]; !ok {
+		return dto.Item{}, false
+	}
+	now := time.Now().Format(time.RFC3339)
+	item := r.items[id]
+	item.Name = name
+	item.Description = description
+	item.UpdatedAt = now
+	r.items[id] = item
+	return item, true
 }
 
 func (r *ItemRepository) GetByID(id string) (dto.Item, bool) {

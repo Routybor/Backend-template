@@ -1,13 +1,16 @@
 package dto
 
 type Item struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	CreatedAt string `json:"created_at,omitempty"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	CreatedAt   string `json:"created_at,omitempty"`
+	UpdatedAt   string `json:"updated_at,omitempty"`
 }
 
 type CreateItemRequest struct {
-	Name string `json:"name" binding:"required,min=1,max=255"`
+	Name        string `json:"name" binding:"required,min=1,max=255"`
+	Description string `json:"description"`
 }
 
 type UpdateItemRequest struct {

@@ -5,7 +5,8 @@ Go microservices + api gateway + keycloak template
 ## Stack
 
 - **Gateway**: Go + Gin (JWT auth, gzip, rate limiting, circuit breaker)
-- **Core Service**: Go + Gin (CRUD API)
+- **Core Service**: Go + Gin + gRPC (CRUD API)
+- **Communication**: gRPC between gateway and services
 - **Auth**: Keycloak 26.x (OIDC)
 - **Orchestration**: Docker Compose / Kubernetes
 
@@ -31,16 +32,23 @@ cp k8s/.env.example k8s/.env
 .\scripts\deploy-k8s.ps1
 ```
 
-## Endpoints
+## Endpoints (via Gateway, requires JWT)
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | /health | No | Health check |
-| GET | /items | JWT | List items |
-| POST | /items | JWT | Create item |
-| GET | /items/:id | JWT | Get item |
-| PUT | /items/:id | JWT | Update item |
-| DELETE | /items/:id | JWT | Delete item |
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /health | Health check |
+| GET | /items | List items |
+| POST | /items | Create item |
+| GET | /items/:id | Get item |
+| DELETE | /items/:id | Delete item |
+
+## Direct Access (no auth)
+
+| Service | Port | Protocol |
+|---------|------|----------|
+| Gateway | 8080 | HTTP |
+| Core Service | 8081 | HTTP |
+| Core Service | 9091 | gRPC |
 
 ## Authentication
 
@@ -113,8 +121,9 @@ See `k8s/ENV.md` for full variable reference.
 
 ## Ports
 
-| Service | Internal | External |
-|---------|----------|----------|
-| Gateway | 8080 | 8080 |
-| Keycloak | 8080 | 8180 |
-| Core Service | 8081 | - |
+| Service | Port | Protocol |
+|---------|------|----------|
+| Gateway | 8080 | HTTP |
+| Keycloak | 8080 | HTTP |
+| Core Service (HTTP) | 8081 | HTTP |
+| Core Service (gRPC) | 9091 | gRPC |
