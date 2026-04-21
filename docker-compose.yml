@@ -19,7 +19,7 @@ services:
       - keycloak_data:/opt/keycloak/data
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
     healthcheck:
-      test: ["CMD-SHELL", "exec bash -c 'echo > /dev/tcp/127.0.0.1/8080' || exit 1"]
+      test: [ "CMD-SHELL", "exec bash -c 'echo > /dev/tcp/127.0.0.1/8080' || exit 1" ]
       interval: 15s
       timeout: 10s
       retries: 15
@@ -34,9 +34,11 @@ services:
       dockerfile: Dockerfile
     container_name: core-service
     environment:
-      PORT: 8081
+      PORT: ${CORE_SERVICE_PORT:-8081}
+      GRPC_PORT: ${GRPC_PORT:-9091}
     ports:
-      - "8081:8081"
+      - "${CORE_SERVICE_PORT:-8081}:${CORE_SERVICE_PORT:-8081}"
+      - "${GRPC_PORT:-9091}:${GRPC_PORT:-9091}"
     networks:
       - microservices
     restart: unless-stopped
@@ -49,7 +51,7 @@ services:
           cpus: '0.10'
           memory: 64M
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8081/health" ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -61,13 +63,13 @@ services:
       dockerfile: Dockerfile
     container_name: gateway
     environment:
-      GATEWAY_PORT: 8080
-      CORE_SERVICE_URL: http://core-service:8081
+      GATEWAY_PORT: ${GATEWAY_PORT:-8080}
+      CORE_SERVICE_GRPC: core-service:${GRPC_PORT:-9091}
       KEYCLOAK_URL: ${KEYCLOAK_URL:-http://keycloak:8080}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM:-master}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-gateway}
     ports:
-      - "8080:8080"
+      - "${GATEWAY_PORT:-8080}:${GATEWAY_PORT:-8080}"
     networks:
       - microservices
     depends_on:

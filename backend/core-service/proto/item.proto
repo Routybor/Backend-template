@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package core;
+
+option go_package = "core-service/proto";
+
+service ItemService {
+  rpc GetAll(GetAllRequest) returns (ListItemsResponse);
+  rpc GetByID(GetByIDRequest) returns (Item);
+  rpc Create(CreateItemRequest) returns (Item);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+message Item {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  int64 created_at = 4;
+  int64 updated_at = 5;
+}
+
+message GetAllRequest {}
+
+message GetByIDRequest {
+  string id = 1;
+}
+
+message CreateItemRequest {
+  string name = 1;
+  string description = 2;
+}
+
+message ListItemsResponse {
+  repeated Item items = 1;
+  int64 total = 2;
+}
+
+message DeleteRequest {
+  string id = 1;
+}
+
+message DeleteResponse {
+  bool success = 1;
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;
+}

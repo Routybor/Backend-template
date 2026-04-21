@@ -5,6 +5,7 @@ import "os"
 type Config struct {
 	Port               string
 	CoreServiceURL     string
+	CoreServiceGrpc    string
 	KeycloakURL        string
 	Realm              string
 	ClientID           string
@@ -18,6 +19,7 @@ func Load() *Config {
 	return &Config{
 		Port:               getEnv("GATEWAY_PORT", "8080"),
 		CoreServiceURL:     getEnv("CORE_SERVICE_URL", "http://localhost:8081"),
+		CoreServiceGrpc:    getEnv("CORE_SERVICE_GRPC", "localhost:9091"),
 		KeycloakURL:        getEnv("KEYCLOAK_URL", "http://localhost:8180"),
 		Realm:              getEnv("KEYCLOAK_REALM", "master"),
 		ClientID:           getEnv("KEYCLOAK_CLIENT_ID", "gateway"),

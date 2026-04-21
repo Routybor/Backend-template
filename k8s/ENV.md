@@ -79,6 +79,11 @@ CORE_SERVICE_PORT
     Default: 8081
     Type: integer
 
+CORE_SERVICE_GRPC_PORT
+    Description: Core service gRPC port
+    Default: 9091
+    Type: integer
+
 # =============================================================================
 # GATEWAY
 # =============================================================================

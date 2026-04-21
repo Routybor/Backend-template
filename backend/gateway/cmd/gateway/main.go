@@ -21,9 +21,9 @@ func main() {
 
 	cfg := config.Load()
 
-	proxy, err := service.NewReverseProxy(cfg.CoreServiceURL)
+	grpcClient, err := service.NewItemGrpcClient(cfg.CoreServiceGrpc)
 	if err != nil {
-		slog.Error("failed to create proxy", "error", err)
+		slog.Error("failed to create gRPC client", "error", err)
 		os.Exit(1)
 	}
 
@@ -31,7 +31,7 @@ func main() {
 	authService := service.NewAuthService(jwksCache, cfg.KeycloakURL, cfg.Realm, cfg.ClientID)
 
 	healthHandler := handler.NewHealthHandler()
-	proxyHandler := handler.NewProxyHandler(proxy)
+	proxyHandler := handler.NewProxyHandler(grpcClient)
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
@@ -69,6 +69,8 @@ func main() {
 	<-quit
 
 	slog.Info("shutting down server")
+
+	grpcClient.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

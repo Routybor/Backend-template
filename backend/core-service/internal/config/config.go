@@ -3,12 +3,14 @@ package config
 import "os"
 
 type Config struct {
-	Port string
+	Port     string
+	GrpcPort string
 }
 
 func Load() *Config {
 	return &Config{
-		Port: getEnv("PORT", "8081"),
+		Port:     getEnv("PORT", "8081"),
+		GrpcPort: getEnv("GRPC_PORT", "9091"),
 	}
 }
 
