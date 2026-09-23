@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keycloak-data
+  namespace: ${K8S_NAMESPACE}
+  labels:
+    app: keycloak
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: ${KEYCLOAK_DATA_SIZE}
+  storageClassName: ${STORAGE_CLASS}

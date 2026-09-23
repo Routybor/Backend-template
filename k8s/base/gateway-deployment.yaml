@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: ${K8S_NAMESPACE}
+  labels:
+    app: gateway
+spec:
+  replicas: ${GATEWAY_REPLICAS}
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+        - name: gateway
+          image: ${GATEWAY_IMAGE}
+          ports:
+            - containerPort: ${GATEWAY_PORT}
+              name: http
+          envFrom:
+            - configMapRef:
+                name: gateway-config
+            - secretRef:
+                name: gateway-secret
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: ${GATEWAY_PORT}
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: ${GATEWAY_PORT}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+

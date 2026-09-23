@@ -1,0 +1,152 @@
+services:
+  keycloak-db:
+    image: postgres:17-alpine
+    container_name: keycloak_db
+    environment:
+      POSTGRES_USER: ${KEYCLOAK_DB_USER:-keycloak_user}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_pass123}
+      POSTGRES_DB: ${KEYCLOAK_DB_NAME:-keycloak_db}
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER:-keycloak_user} -d ${KEYCLOAK_DB_NAME:-keycloak_db}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - microservices
+    restart: unless-stopped
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.5.0
+    container_name: keycloak
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: ${KC_DB:-postgres}
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/${KEYCLOAK_DB_NAME:-keycloak_db}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak_user}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_pass123}
+      KC_LOG_LEVEL: INFO
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+      KC_PROXY_HEADERS: "forwarded"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+    command: start-dev --import-realm
+    ports:
+      - "8180:8080"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
+    healthcheck:
+      test: [ "CMD-SHELL", "exec bash -c 'echo > /dev/tcp/127.0.0.1/8080' || exit 1" ]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+    networks:
+      - microservices
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  keycloak-db-backup:
+    image: postgres:17-alpine
+    profiles:
+      - backup
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./backups/postgres:/backups/postgres
+    environment:
+      KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER:-keycloak_user}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_pass123}
+      KEYCLOAK_DB_NAME: ${KEYCLOAK_DB_NAME:-keycloak_db}
+      BACKUP_RETENTION_COUNT: ${BACKUP_RETENTION_COUNT:-30}
+      BACKUP_READY_TIMEOUT: ${BACKUP_READY_TIMEOUT:-120}
+      BACKUP_ALLOW_EMPTY_POSTGRES: ${BACKUP_ALLOW_EMPTY_POSTGRES:-false}
+    networks:
+      - microservices
+    entrypoint: [ "/bin/sh", "/scripts/postgres-backup.sh" ]
+    depends_on:
+      - keycloak-db
+    restart: "no"
+
+  core-service:
+    build:
+      context: ./backend
+      dockerfile: core-service/Dockerfile
+    container_name: core-service
+    environment:
+      PORT: ${CORE_SERVICE_PORT:-8081}
+      GRPC_PORT: ${GRPC_PORT:-9091}
+    ports:
+      - "${CORE_SERVICE_PORT:-8081}:${CORE_SERVICE_PORT:-8081}"
+      - "${GRPC_PORT:-9091}:${GRPC_PORT:-9091}"
+    networks:
+      - microservices
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+        reservations:
+          cpus: '0.10'
+          memory: 64M
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:${CORE_SERVICE_PORT:-8081}/health')" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  gateway:
+    build:
+      context: ./backend
+      dockerfile: gateway/Dockerfile
+    container_name: gateway
+    environment:
+      GATEWAY_PORT: ${GATEWAY_PORT:-8080}
+      CORE_SERVICE_GRPC: core-service:${GRPC_PORT:-9091}
+      KEYCLOAK_URL: ${KEYCLOAK_URL:-http://keycloak:8080}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-microservices}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-gateway}
+    ports:
+      - "${GATEWAY_PORT:-8080}:${GATEWAY_PORT:-8080}"
+    networks:
+      - microservices
+    depends_on:
+      keycloak:
+        condition: service_started
+      core-service:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+        reservations:
+          cpus: '0.10'
+          memory: 64M
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:${GATEWAY_PORT:-8080}/health')" ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  microservices:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  keycloak_data:
+  keycloak_db_data:
