@@ -1,17 +1,18 @@
 FROM golang:1.26-alpine AS builder
 
-WORKDIR /app
+WORKDIR /src
 
 RUN apk add --no-cache git ca-certificates
 
-COPY go.mod go.sum* ./
-RUN go mod download
+COPY pkg/go.mod pkg/go.sum* ./pkg/
+COPY core-service/go.mod core-service/go.sum* ./core-service/
+RUN printf 'go 1.26.0\n\nuse (\n\t./pkg\n\t./core-service\n)\n' > go.work \
+    && cd core-service && go mod download \
+    && cd ../pkg && go mod download
 
-COPY cmd ./cmd
-COPY internal ./internal
-COPY proto ./proto
-
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w -X main.version=1.0.0" -o core-service ./cmd/core-service
+COPY pkg/ ./pkg/
+COPY core-service/ ./core-service/
+RUN cd core-service && CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w -X main.version=1.0.0" -o /app/core-service ./cmd/core-service
 
 FROM alpine:3.21
 

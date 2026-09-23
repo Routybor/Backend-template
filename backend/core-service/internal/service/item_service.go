@@ -1,37 +1,40 @@
 package service
 
 import (
-	"log"
+	"context"
+	"fmt"
+	"strings"
 
-	"core-service/internal/dto"
-	"core-service/internal/repository"
+	"core-service/internal/domain"
 )
 
 type ItemService struct {
-	repo *repository.ItemRepository
+	store domain.ItemStore
 }
 
-func NewItemService(repo *repository.ItemRepository) *ItemService {
-	return &ItemService{repo: repo}
+func NewItemService(store domain.ItemStore) *ItemService {
+	return &ItemService{store: store}
 }
 
-func (s *ItemService) GetAllItems() []dto.Item {
-	return s.repo.GetAll()
+func (s *ItemService) GetAll(ctx context.Context) []domain.Item {
+	return s.store.GetAll(ctx)
 }
 
-func (s *ItemService) CreateItem(req dto.CreateItemRequest) dto.Item {
-	log.Printf("Creating item: %s", req.Name)
-	return s.repo.Create(req.Name, req.Description)
+func (s *ItemService) Create(ctx context.Context, name, description string) (domain.Item, error) {
+	if strings.TrimSpace(name) == "" {
+		return domain.Item{}, fmt.Errorf("%w: name is required", domain.ErrInvalidInput)
+	}
+	return s.store.Create(ctx, name, description)
 }
 
-func (s *ItemService) GetItem(id string) (dto.Item, bool) {
-	return s.repo.GetByID(id)
+func (s *ItemService) Get(ctx context.Context, id string) (domain.Item, error) {
+	return s.store.GetByID(ctx, id)
 }
 
-func (s *ItemService) DeleteItem(id string) bool {
-	return s.repo.Delete(id)
+func (s *ItemService) Delete(ctx context.Context, id string) error {
+	return s.store.Delete(ctx, id)
 }
 
-func (s *ItemService) UpdateItem(id string, req dto.CreateItemRequest) (dto.Item, bool) {
-	return s.repo.Update(id, req.Name, req.Description)
+func (s *ItemService) Ping(ctx context.Context) error {
+	return s.store.Ping(ctx)
 }

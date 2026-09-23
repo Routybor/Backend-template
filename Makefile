@@ -22,7 +22,7 @@ GOCACHE ?= /tmp/template-gocache
 
 .PHONY: help init \
     build up down destroy restart ps logs health \
-    test test-gateway test-core check check-compose \
+    test test-gateway test-core test-pkg check check-compose proto \
     backup verify-backup verify-backup-full restore-db-all \
     bundle restore-bundle \
     k8s-deploy k8s-status k8s-undeploy \
@@ -74,10 +74,16 @@ test-gateway: ## Run gateway tests
 test-core: ## Run core-service tests
 	cd backend/core-service && GOCACHE=$(GOCACHE) go test ./...
 
+test-pkg: ## Run shared pkg tests
+	cd backend/pkg && GOCACHE=$(GOCACHE) go test ./...
+
 check: check-compose test ## Run project checks
 
 check-compose: _check-env ## Validate compose config
 	$(COMPOSE) config --quiet
+
+proto: ## Regenerate gRPC stubs from backend/proto
+	@bash ./scripts/gen-proto.sh
 
 backup: ## Backup keycloak database
 	@echo "=== Database Backup ==="

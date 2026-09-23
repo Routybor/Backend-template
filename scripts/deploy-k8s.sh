@@ -20,10 +20,9 @@ echo "Connected to cluster successfully"
 
 echo ""
 echo "[2/5] Building Docker images..."
-cd "$PROJECT_DIR/backend/gateway"
-docker build -t ultimatetemplate/gateway:latest .
-cd "$PROJECT_DIR/backend/core-service"
-docker build -t ultimatetemplate/core-service:latest .
+cd "$PROJECT_DIR/backend"
+docker build -f gateway/Dockerfile -t ultimatetemplate/gateway:latest .
+docker build -f core-service/Dockerfile -t ultimatetemplate/core-service:latest .
 
 echo ""
 echo "[3/5] Loading images (if using kind cluster)..."
