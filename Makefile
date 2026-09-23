@@ -22,7 +22,7 @@ GOCACHE ?= /tmp/template-gocache
 
 .PHONY: help init \
     build up down destroy restart ps logs health \
-    test test-gateway test-core test-pkg check check-compose proto \
+    test test-gateway test-core test-pkg check check-compose proto service \
     backup verify-backup verify-backup-full restore-db-all \
     bundle restore-bundle \
     k8s-deploy k8s-status k8s-undeploy \
@@ -84,6 +84,10 @@ check-compose: _check-env ## Validate compose config
 
 proto: ## Regenerate gRPC stubs from backend/proto
 	@bash ./scripts/gen-proto.sh
+
+service: ## Stamp a new service from templates, usage: make service NAME=orders
+	@if [ -z "$(NAME)" ]; then echo "Error: set NAME=<service-name>"; exit 1; fi
+	@bash ./scripts/new-service.sh $(NAME)
 
 backup: ## Backup keycloak database
 	@echo "=== Database Backup ==="

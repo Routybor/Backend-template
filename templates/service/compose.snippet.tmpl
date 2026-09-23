@@ -1,0 +1,14 @@
+  __NAME__:
+    build:
+      context: ./backend
+      dockerfile: __MODULE__/Dockerfile
+    container_name: __NAME__
+    environment:
+      PORT: ${__PASCAL___PORT:-8082}
+      GRPC_PORT: ${__PASCAL___GRPC_PORT:-9092}
+    ports:
+      - "${__PASCAL___PORT:-8082}:${__PASCAL___PORT:-8082}"
+      - "${__PASCAL___GRPC_PORT:-9092}:${__PASCAL___GRPC_PORT:-9092}"
+    networks:
+      - microservices
+    restart: unless-stopped

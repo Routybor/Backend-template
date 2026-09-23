@@ -1,0 +1,35 @@
+package service
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"__MODULE__/internal/domain"
+)
+
+type GreetingService struct {
+	store domain.GreetingStore
+}
+
+func NewGreetingService(store domain.GreetingStore) *GreetingService {
+	return &GreetingService{store: store}
+}
+
+func (s *GreetingService) Greet(ctx context.Context, name string) (domain.Greeting, error) {
+	if strings.TrimSpace(name) == "" {
+		return domain.Greeting{}, fmt.Errorf("%w: name is required", domain.ErrInvalidInput)
+	}
+	return s.store.Create(ctx, domain.Greeting{
+		Name: name,
+		Text: "Hello, " + name + "!",
+	})
+}
+
+func (s *GreetingService) List(ctx context.Context) []domain.Greeting {
+	return s.store.GetAll(ctx)
+}
+
+func (s *GreetingService) Ping(ctx context.Context) error {
+	return s.store.Ping(ctx)
+}

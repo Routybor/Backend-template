@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package core;
+
+option go_package = "backend/pkg/pb";
+
+service __PASCAL__Service {
+  rpc Greet(GreetRequest) returns (GreetResponse);
+}
+
+message GreetRequest {
+  string name = 1;
+}
+
+message GreetResponse {
+  string greeting = 1;
+}

@@ -1,0 +1,42 @@
+package infrastructure
+
+import (
+	"context"
+	"errors"
+	"log/slog"
+
+	"backend/pkg/pb"
+	"backend/pkg/requestid"
+	"__MODULE__/internal/domain"
+	"__MODULE__/internal/service"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+type GRPCHandler struct {
+	pb.Unimplemented__PASCAL__ServiceServer
+	svc *service.GreetingService
+}
+
+func NewGRPCHandler(svc *service.GreetingService) *GRPCHandler {
+	return &GRPCHandler{svc: svc}
+}
+
+func (h *GRPCHandler) Greet(ctx context.Context, req *pb.GreetRequest) (*pb.GreetResponse, error) {
+	greeting, err := h.svc.Greet(ctx, req.Name)
+	if err != nil {
+		return nil, mapDomainError(ctx, err)
+	}
+	return &pb.GreetResponse{Greeting: greeting.Text}, nil
+}
+
+func mapDomainError(ctx context.Context, err error) error {
+	switch {
+	case errors.Is(err, domain.ErrInvalidInput):
+		return status.Error(codes.InvalidArgument, err.Error())
+	default:
+		slog.Error("unexpected service error", "error", err, "request_id", requestid.FromContext(ctx))
+		return status.Error(codes.Internal, "internal error")
+	}
+}

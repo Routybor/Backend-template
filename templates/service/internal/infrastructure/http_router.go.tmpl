@@ -1,0 +1,44 @@
+package infrastructure
+
+import (
+	"context"
+	"fmt"
+	"strconv"
+
+	pkgconfig "backend/pkg/config"
+	"backend/pkg/observability"
+
+	"__MODULE__/internal/service"
+
+	"github.com/gin-gonic/gin"
+)
+
+type Config struct {
+	Port     string
+	GrpcPort string
+}
+
+func LoadConfig() (*Config, error) {
+	cfg := &Config{
+		Port:     pkgconfig.String("PORT", "8082"),
+		GrpcPort: pkgconfig.String("GRPC_PORT", "9092"),
+	}
+	for name, value := range map[string]string{"PORT": cfg.Port, "GRPC_PORT": cfg.GrpcPort} {
+		if _, err := strconv.Atoi(value); err != nil {
+			return nil, fmt.Errorf("%s must be numeric, got %q", name, value)
+		}
+	}
+	return cfg, nil
+}
+
+func NewHTTPRouter(svc *service.GreetingService, checks map[string]func(context.Context) error) *gin.Engine {
+	gin.SetMode(gin.ReleaseMode)
+
+	router := gin.New()
+	router.Use(gin.Recovery())
+
+	router.GET("/health", gin.WrapH(observability.HealthHandler(checks)))
+	router.GET("/metrics", gin.WrapH(observability.MetricsHandler()))
+
+	return router
+}

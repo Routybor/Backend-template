@@ -1,0 +1,38 @@
+package data
+
+import (
+	"context"
+	"sync"
+
+	"__MODULE__/internal/domain"
+)
+
+type MemoryGreetingStore struct {
+	mu       sync.RWMutex
+	greetings []domain.Greeting
+}
+
+func NewMemoryGreetingStore() *MemoryGreetingStore {
+	return &MemoryGreetingStore{}
+}
+
+func (s *MemoryGreetingStore) Ping(ctx context.Context) error {
+	return nil
+}
+
+func (s *MemoryGreetingStore) Create(ctx context.Context, g domain.Greeting) (domain.Greeting, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.greetings = append(s.greetings, g)
+	return g, nil
+}
+
+func (s *MemoryGreetingStore) GetAll(ctx context.Context) []domain.Greeting {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	out := make([]domain.Greeting, len(s.greetings))
+	copy(out, s.greetings)
+	return out
+}

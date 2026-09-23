@@ -1,0 +1,9 @@
+package domain
+
+import "context"
+
+type GreetingStore interface {
+	Create(ctx context.Context, g Greeting) (Greeting, error)
+	GetAll(ctx context.Context) []Greeting
+	Ping(ctx context.Context) error
+}
