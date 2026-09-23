@@ -57,7 +57,6 @@ make backup                # dump keycloak DB + write sha256 manifest
 make verify-backup         # verify checksums + archive structure
 make verify-backup-full    # additionally restore into an isolated throwaway DB
 make restore-db-all        # pick a backup date and restore (prompts, or CONFIRM_RESTORE=yes)
-make restore BACKUP=backups/postgres/template-keycloak-<id>.dump CONFIRM_RESTORE=yes
 make bundle                # pack newest set into one portable .tar.gz
 make restore-bundle BUNDLE=backups/template-backup-<id>.tar.gz CONFIRM_RESTORE=yes
 ```

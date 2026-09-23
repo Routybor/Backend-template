@@ -23,7 +23,7 @@ GOCACHE ?= /tmp/template-gocache
 .PHONY: help init \
     build up down destroy restart ps logs health \
     test test-gateway test-core check check-compose \
-    backup backup-db verify-backup verify-backup-full restore restore-db restore-db-all \
+    backup verify-backup verify-backup-full restore-db-all \
     bundle restore-bundle \
     k8s-deploy k8s-status k8s-undeploy \
     _check-env
@@ -83,8 +83,6 @@ backup: ## Backup keycloak database
 	@echo "=== Database Backup ==="
 	@ENV_FILE="$(ENV)" bash ./scripts/db-backup.sh
 
-backup-db: backup
-
 verify-backup: ## Verify latest backup checksums and archive structure
 	@echo "=== Backup Verification ==="
 	@ENV_FILE="$(ENV)" bash ./scripts/backup-verify.sh
@@ -92,18 +90,6 @@ verify-backup: ## Verify latest backup checksums and archive structure
 verify-backup-full: ## Restore latest backup into an isolated temporary database
 	@echo "=== Full Isolated Restore Verification ==="
 	@ENV_FILE="$(ENV)" bash ./scripts/backup-verify.sh --full
-
-restore: ## Restore database, usage: make restore BACKUP=path/to/backup.dump CONFIRM_RESTORE=yes
-	@echo "=== Database Restore ==="
-	@if [ "$(CONFIRM_RESTORE)" != "yes" ]; then echo "Error: set CONFIRM_RESTORE=yes"; exit 1; fi
-	@$(MAKE) --no-print-directory backup
-	@if [ -z "$(BACKUP)" ]; then \
-		ENV_FILE="$(ENV)" CONFIRM_RESTORE=yes bash ./scripts/db-restore.sh; \
-	else \
-		ENV_FILE="$(ENV)" CONFIRM_RESTORE=yes bash ./scripts/db-restore.sh "$(BACKUP)"; \
-	fi
-
-restore-db: restore
 
 restore-db-all: ## Restore database by selecting backup date from list
 	@ENV_FILE="$(ENV)" bash ./scripts/db-restore-all.sh
