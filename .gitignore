@@ -14,6 +14,9 @@ vendor/
 .env
 k8s/.env
 
+# Database backups
+backups/
+
 # Keycloak certificates
 keycloak/certs/*.crt
 keycloak/certs/*.key

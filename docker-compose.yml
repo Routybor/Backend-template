@@ -1,11 +1,33 @@
 services:
+  keycloak-db:
+    image: postgres:17-alpine
+    container_name: keycloak_db
+    environment:
+      POSTGRES_USER: ${KEYCLOAK_DB_USER:-keycloak_user}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_pass123}
+      POSTGRES_DB: ${KEYCLOAK_DB_NAME:-keycloak_db}
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER:-keycloak_user} -d ${KEYCLOAK_DB_NAME:-keycloak_db}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - microservices
+    restart: unless-stopped
+
   keycloak:
     image: quay.io/keycloak/keycloak:26.5.0
     container_name: keycloak
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
-      KC_DB: ${KC_DB:-dev-file}
+      KC_DB: ${KC_DB:-postgres}
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/${KEYCLOAK_DB_NAME:-keycloak_db}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak_user}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_pass123}
       KC_LOG_LEVEL: INFO
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
@@ -26,7 +48,29 @@ services:
       start_period: 60s
     networks:
       - microservices
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
     restart: unless-stopped
+
+  keycloak-db-backup:
+    image: postgres:17-alpine
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./backups/postgres:/backups/postgres
+    environment:
+      KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER:-keycloak_user}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_pass123}
+      KEYCLOAK_DB_NAME: ${KEYCLOAK_DB_NAME:-keycloak_db}
+      BACKUP_RETENTION_COUNT: ${BACKUP_RETENTION_COUNT:-30}
+      BACKUP_READY_TIMEOUT: ${BACKUP_READY_TIMEOUT:-120}
+      BACKUP_ALLOW_EMPTY_POSTGRES: ${BACKUP_ALLOW_EMPTY_POSTGRES:-false}
+    networks:
+      - microservices
+    entrypoint: [ "/bin/sh", "/scripts/postgres-backup.sh" ]
+    depends_on:
+      - keycloak-db
+    restart: "no"
 
   core-service:
     build:
@@ -97,3 +141,4 @@ networks:
 
 volumes:
   keycloak_data:
+  keycloak_db_data:
