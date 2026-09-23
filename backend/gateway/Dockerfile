@@ -32,7 +32,7 @@ EXPOSE 8080
 ENV GATEWAY_PORT=8080
 ENV CORE_SERVICE_GRPC=core-service:9091
 ENV KEYCLOAK_URL=http://keycloak:8080
-ENV KEYCLOAK_REALM=master
+ENV KEYCLOAK_REALM=microservices
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD wget -qO- http://localhost:8080/health || exit 1

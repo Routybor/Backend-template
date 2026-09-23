@@ -22,7 +22,7 @@ func Load() (*Config, error) {
 		Port:               pkgconfig.String("GATEWAY_PORT", "8080"),
 		CoreServiceGrpc:    pkgconfig.String("CORE_SERVICE_GRPC", "localhost:9091"),
 		KeycloakURL:        pkgconfig.String("KEYCLOAK_URL", "http://localhost:8180"),
-		Realm:              pkgconfig.String("KEYCLOAK_REALM", "master"),
+		Realm:              pkgconfig.String("KEYCLOAK_REALM", "microservices"),
 		RateLimitRequests:  pkgconfig.Int("RATE_LIMIT_REQUESTS", 100),
 		RateLimitWindowSec: pkgconfig.Int("RATE_LIMIT_WINDOW_SEC", 60),
 		CircuitThreshold:   pkgconfig.Int("CIRCUIT_THRESHOLD", 5),

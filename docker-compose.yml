@@ -112,7 +112,7 @@ services:
       GATEWAY_PORT: ${GATEWAY_PORT:-8080}
       CORE_SERVICE_GRPC: core-service:${GRPC_PORT:-9091}
       KEYCLOAK_URL: ${KEYCLOAK_URL:-http://keycloak:8080}
-      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-master}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-microservices}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-gateway}
     ports:
       - "${GATEWAY_PORT:-8080}:${GATEWAY_PORT:-8080}"

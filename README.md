@@ -4,9 +4,10 @@ Go microservices + api gateway + keycloak template
 
 ## Stack
 
-- **Gateway**: Go + Gin (JWT auth, gzip, rate limiting, circuit breaker)
-- **Core Service**: Go + Gin + gRPC (CRUD API)
-- **Communication**: gRPC between gateway and services
+- **Workspace**: Go 1.26 `go.work` — `pkg`, `gateway`, one module per service
+- **Gateway**: Go + Gin (JWT auth via JWKS, gzip, rate limiting, circuit breaker)
+- **Core Service**: hexagonal (domain port -> data/service -> gRPC/HTTP adapters)
+- **Communication**: gRPC; contracts in `backend/proto`, stubs in `backend/pkg/pb`
 - **Auth**: Keycloak 26.x (OIDC), backed by PostgreSQL 17
 - **Orchestration**: Docker Compose / Kubernetes
 
@@ -45,6 +46,8 @@ Run `make help` for the full list. Highlights:
 | `make health` | Check containers and public endpoints |
 | `make test` | Run Go tests (gateway + core-service) |
 | `make check` | Compose config validation + tests |
+| `make proto` | Regenerate gRPC stubs from `backend/proto` |
+| `make service NAME=orders` | Stamp a new service from `templates/service/` |
 | `make k8s-deploy` / `make k8s-status` / `make k8s-undeploy` | Kubernetes lifecycle |
 
 ## Backups
@@ -127,33 +130,24 @@ See `k8s/ENV.md` for full variable reference.
 
 ```
 .
-├── Makefile                 # make init/up/backup/... command surface
+├── Makefile                 # make init/up/backup/proto/service command surface
 ├── docker-compose.yml
 ├── backend/
-│   ├── gateway/              # API Gateway
-│   │   ├── cmd/gateway/main.go
-│   │   ├── internal/
-│   │   │   ├── config/
-│   │   │   ├── dto/
-│   │   │   ├── handler/
-│   │   │   ├── middleware/
-│   │   │   └── service/
-│   │   ├── go.mod
-│   │   └── Dockerfile
-│   └── core-service/         # CRUD Service
-│       ├── cmd/core-service/main.go
-│       ├── internal/
-│       │   ├── config/
-│       │   ├── dto/
-│       │   ├── handler/
-│       │   ├── repository/
-│       │   └── service/
-│       ├── go.mod
-│       └── Dockerfile
+│   ├── go.work              # workspace: pkg + gateway + services
+│   ├── proto/               # gRPC contracts (single source, make proto)
+│   ├── pkg/                 # shared libs: config, auth, cache, grpcx,
+│   │                        # observability, pb, requestid
+│   ├── gateway/             # API Gateway
+│   │   ├── cmd/gateway/
+│   │   └── internal/{app,config,handlers,middleware,service}
+│   └── core-service/        # CRUD Service
+│       ├── cmd/core-service/
+│       └── internal/{domain,data,service,infrastructure}
+├── templates/service/       # skeleton stamped by: make service NAME=x
 ├── k8s/                     # Kubernetes manifests
 │   ├── base/                # Kustomize base
 │   └── helm/                # Helm chart
-├── scripts/                 # Deploy, health-check and backup scripts
+├── scripts/                 # deploy, health-check, backup and generator scripts
 ├── backups/                 # Backup output (gitignored)
 └── keycloak/                # Keycloak config
 ```
