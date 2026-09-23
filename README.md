@@ -16,7 +16,7 @@ Go microservices + api gateway + keycloak template
 
 ```bash
 make init    # creates .env from .env.example
-make up      # builds (first time) and starts the stack
+make up      # builds (first time) and starts the stack, waits until healthy
 ```
 
 Access:

@@ -45,8 +45,8 @@ init: ## Create root local environment file
 build: _check-env ## Build all service images
 	$(COMPOSE) build $(BACKEND_SERVICES)
 
-up: _check-env ## Start stack or SERVICE=name
-	$(COMPOSE) up -d --remove-orphans $(SERVICE)
+up: _check-env ## Start stack or SERVICE=name (waits until healthy)
+	$(COMPOSE) up -d --remove-orphans --wait --wait-timeout 180 $(SERVICE)
 
 down: _check-env ## Stop stack
 	$(COMPOSE) down
