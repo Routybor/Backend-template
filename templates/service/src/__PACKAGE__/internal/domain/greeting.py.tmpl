@@ -1,0 +1,17 @@
+from datetime import datetime
+from typing import Protocol
+
+
+class GreetingStore(Protocol):
+    def create(self, name: str) -> "Greeting": ...
+    def get_all(self) -> list["Greeting"]: ...
+    def ping(self) -> None: ...
+
+
+class Greeting:
+    __slots__ = ("name", "text", "created_at")
+
+    def __init__(self, name: str, text: str) -> None:
+        self.name = name
+        self.text = text
+        self.created_at = datetime.now(tz=None)

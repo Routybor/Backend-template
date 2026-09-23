@@ -1,0 +1,17 @@
+from __PACKAGE__.internal.domain import Greeting, GreetingStore, InvalidInputError
+
+
+class GreetingService:
+    def __init__(self, store: GreetingStore) -> None:
+        self._store = store
+
+    def greet(self, name: str) -> Greeting:
+        if not name or not name.strip():
+            raise InvalidInputError("name is required")
+        return self._store.create(name)
+
+    def list(self) -> list[Greeting]:
+        return self._store.get_all()
+
+    def ping(self) -> None:
+        self._store.ping()

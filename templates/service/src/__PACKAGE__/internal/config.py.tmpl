@@ -1,0 +1,8 @@
+from pydantic import Field
+
+from common.config import EnvSettings
+
+
+class __PASCAL__Config(EnvSettings):
+    port: int = Field(8082, gt=0)
+    grpc_port: int = Field(9092, gt=0)

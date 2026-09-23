@@ -1,0 +1,17 @@
+import grpc
+
+from common.pb import __NAME___pb2, __NAME___pb2_grpc
+from __PACKAGE__.internal.domain import InvalidInputError
+from __PACKAGE__.internal.service import GreetingService
+
+
+class GrpcGreetingHandler(__NAME___pb2_grpc.__PASCAL__ServiceServicer):
+    def __init__(self, svc: GreetingService) -> None:
+        self._svc = svc
+
+    async def Greet(self, request, context):
+        try:
+            greeting = self._svc.greet(request.name)
+        except InvalidInputError as exc:
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
+        return __NAME___pb2.GreetResponse(greeting=greeting.text)

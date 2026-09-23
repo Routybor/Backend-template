@@ -1,0 +1,22 @@
+import threading
+
+from __PACKAGE__.internal.domain import Greeting, GreetingStore
+
+
+class MemoryGreetingStore(GreetingStore):
+    def __init__(self) -> None:
+        self._greetings: list[Greeting] = []
+        self._lock = threading.Lock()
+
+    def ping(self) -> None:
+        return None
+
+    def create(self, name: str) -> Greeting:
+        with self._lock:
+            greeting = Greeting(name, f"Hello, {name}!")
+            self._greetings.append(greeting)
+            return greeting
+
+    def get_all(self) -> list[Greeting]:
+        with self._lock:
+            return list(self._greetings)

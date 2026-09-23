@@ -1,0 +1,52 @@
+import asyncio
+import logging
+
+import uvicorn
+
+from common import grpcx
+from common.pb import __NAME___pb2_grpc
+from __PACKAGE__.internal.config import __PASCAL__Config
+from __PACKAGE__.internal.data import MemoryGreetingStore
+from __PACKAGE__.internal.infrastructure.grpc_handler import GrpcGreetingHandler
+from __PACKAGE__.internal.infrastructure.http_router import create_http_app
+from __PACKAGE__.internal.service import GreetingService
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+logger = logging.getLogger(__name__)
+
+
+async def serve() -> None:
+    cfg = __PASCAL__Config()
+
+    svc = GreetingService(MemoryGreetingStore())
+    http_app = create_http_app(svc)
+
+    grpc_server = grpcx.new_server()
+    __NAME___pb2_grpc.add___PASCAL__ServiceServicer_to_server(GrpcGreetingHandler(svc), grpc_server)
+    grpc_server.add_insecure_port(f"[::]:{cfg.grpc_port}")
+    await grpc_server.start()
+    logger.info("grpc server listening", extra={"port": cfg.grpc_port})
+
+    http_config = uvicorn.Config(
+        http_app,
+        host="0.0.0.0",
+        port=cfg.port,
+        log_level="info",
+        access_log=False,
+    )
+    server = uvicorn.Server(http_config)
+
+    try:
+        await server.serve()
+    finally:
+        logger.info("shutting down __NAME__-service")
+        await grpcx.stop(grpc_server, grace=15.0)
+        logger.info("__NAME__-service stopped")
+
+
+def main() -> None:
+    asyncio.run(serve())
+
+
+if __name__ == "__main__":
+    main()
