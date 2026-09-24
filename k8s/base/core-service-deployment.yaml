@@ -18,6 +18,7 @@ spec:
       containers:
         - name: core-service
           image: ${CORE_SERVICE_IMAGE}
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: ${CORE_SERVICE_PORT}
               name: http

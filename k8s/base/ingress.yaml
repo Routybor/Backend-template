@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: microservices-ingress
-  namespace: microservices
+  namespace: ${K8S_NAMESPACE}
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
@@ -26,7 +26,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: keycloak-ingress
-  namespace: microservices
+  namespace: ${K8S_NAMESPACE}
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:

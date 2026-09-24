@@ -1,7 +1,18 @@
 #!/bin/bash
-set -e
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+K8S_DIR="$SCRIPT_DIR/../k8s"
+ENV_FILE="$K8S_DIR/.env"
 
 NAMESPACE="microservices"
+if [[ -f "$ENV_FILE" ]]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "$ENV_FILE"
+    set +a
+    NAMESPACE="${K8S_NAMESPACE:-microservices}"
+fi
 
 echo "=========================================="
 echo "Checking Microservices Status"
