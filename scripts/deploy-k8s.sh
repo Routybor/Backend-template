@@ -75,10 +75,15 @@ fi
 
 echo ""
 echo "[5/7] Installing ingress-nginx (kind only)..."
-if [[ "$IS_KIND" == true ]] && ! kubectl get ns ingress-nginx &>/dev/null; then
-    echo "Installing ingress-nginx controller..."
-    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.4/deploy/static/provider/kind/deploy.yaml
-    kubectl wait --for=condition=available --timeout=120s deployment/ingress-nginx-controller -n ingress-nginx || true
+if [[ "$IS_KIND" == true ]]; then
+    if ! kubectl get ns ingress-nginx &>/dev/null; then
+        echo "Installing ingress-nginx controller..."
+        kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.4/deploy/static/provider/kind/deploy.yaml
+        kubectl wait --for=condition=available --timeout=120s deployment/ingress-nginx-controller -n ingress-nginx || true
+    fi
+    echo "Pinning ingress-nginx nodePorts to match kind-config mapping..."
+    kubectl patch service ingress-nginx-controller -n ingress-nginx --type=json \
+        -p='[{"op":"replace","path":"/spec/ports/0/nodePort","value":30080},{"op":"replace","path":"/spec/ports/1/nodePort","value":30443}]' || true
 fi
 
 echo ""
@@ -103,7 +108,17 @@ kubectl apply -f "$TEMP_DIR/core-service-deployment.yaml"
 kubectl apply -f "$TEMP_DIR/core-service-service.yaml"
 kubectl apply -f "$TEMP_DIR/gateway-deployment.yaml"
 kubectl apply -f "$TEMP_DIR/gateway-service.yaml"
-kubectl apply -f "$TEMP_DIR/ingress.yaml"
+apply_ingress() {
+    for attempt in $(seq 1 20); do
+        if kubectl apply -f "$TEMP_DIR/ingress.yaml" 2>/dev/null; then
+            return 0
+        fi
+        [[ "$attempt" -lt 20 ]] && sleep 5
+    done
+    echo "ERROR: ingress apply failed after retries (webhook not ready)" >&2
+    return 1
+}
+apply_ingress
 
 echo ""
 echo "[7/7] Waiting for deployments..."
@@ -126,8 +141,9 @@ echo ""
 echo "=========================================="
 echo "Access URLs:"
 echo "=========================================="
-echo "Gateway:   http://microservices.local/"
-echo "Keycloak:  http://keycloak.local/"
+HOST_HTTP_PORT="$(awk '/containerPort: 30080/{getline; sub(/.*hostPort: /, ""); print}' "$PROJECT_DIR/kind-config.yaml")"
+echo "Gateway:   http://microservices.local:${HOST_HTTP_PORT:-18080}/"
+echo "Keycloak:  http://keycloak.local:${HOST_HTTP_PORT:-18080}/"
 echo ""
 echo "To add hosts entries:"
 echo "  echo '127.0.0.1 microservices.local keycloak.local' | sudo tee -a /etc/hosts"
