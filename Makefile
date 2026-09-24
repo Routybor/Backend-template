@@ -24,7 +24,7 @@ LOG_TAIL ?= 120
     test test-gateway test-core check check-compose proto service \
     backup verify-backup verify-backup-full restore-db-all \
     bundle restore-bundle \
-    k8s-deploy k8s-status k8s-undeploy \
+    k8s-cluster k8s-deploy k8s-status k8s-undeploy \
     _check-env
 
 BACKEND_SERVICES = gateway core-service
@@ -111,6 +111,9 @@ restore-bundle: ## Restore from a single bundle file, usage: make restore-bundle
 	@ENV_FILE="$(ENV)" CONFIRM_RESTORE=yes bash ./scripts/db-restore-bundle.sh "$(BUNDLE)"
 
 # ==================== Kubernetes ====================
+
+k8s-cluster: ## Create kind cluster from kind-config.yaml
+	@kind create cluster --config kind-config.yaml
 
 k8s-deploy: ## Deploy stack to Kubernetes (kind)
 	@bash ./scripts/deploy-k8s.sh
