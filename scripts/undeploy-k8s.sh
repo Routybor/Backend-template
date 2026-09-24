@@ -4,7 +4,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 K8S_DIR="$PROJECT_DIR/k8s"
-ENV_FILE="$K8S_DIR/.env"
+ENV_FILE="$PROJECT_DIR/.env"
+if [[ ! -f "$ENV_FILE" ]]; then
+    ENV_FILE="$K8S_DIR/.env"
+fi
 
 NAMESPACE="microservices"
 if [[ -f "$ENV_FILE" ]]; then

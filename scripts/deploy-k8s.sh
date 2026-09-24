@@ -4,7 +4,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 K8S_DIR="$PROJECT_DIR/k8s"
-ENV_FILE="$K8S_DIR/.env"
+ENV_FILE="$PROJECT_DIR/.env"
+if [[ ! -f "$ENV_FILE" ]]; then
+    ENV_FILE="$K8S_DIR/.env"
+fi
 TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
@@ -15,16 +18,33 @@ echo "=========================================="
 echo ""
 echo "[1/7] Loading environment variables..."
 if [[ ! -f "$ENV_FILE" ]]; then
-    echo "ERROR: $ENV_FILE not found" >&2
-    echo "Copy $K8S_DIR/.env.example to $ENV_FILE and configure it" >&2
+    echo "ERROR: no environment file found" >&2
+    echo "Run 'make init' (creates .env) or copy $K8S_DIR/.env.example to $K8S_DIR/.env" >&2
     exit 1
 fi
 set -a
 # shellcheck source=/dev/null
 source "$ENV_FILE"
+: "${K8S_NAMESPACE:=microservices}"
+: "${KEYCLOAK_IMAGE:=quay.io/keycloak/keycloak:26.5.0}"
+: "${KEYCLOAK_DB:=dev-file}"
+: "${KEYCLOAK_LOG_LEVEL:=INFO}"
+: "${KEYCLOAK_REALM:=microservices}"
+: "${KEYCLOAK_CLIENT_ID:=gateway}"
+: "${KEYCLOAK_CLIENT_SECRET:=gateway-secret}"
+: "${KEYCLOAK_TESTUSER_PASSWORD:=testuser}"
+: "${KEYCLOAK_DATA_SIZE:=1Gi}"
+: "${STORAGE_CLASS:=standard}"
+: "${GATEWAY_IMAGE:=ultimatetemplate/gateway:latest}"
+: "${GATEWAY_REPLICAS:=2}"
+: "${GATEWAY_PORT:=8080}"
+: "${CORE_SERVICE_IMAGE:=ultimatetemplate/core-service:latest}"
+: "${CORE_SERVICE_REPLICAS:=2}"
+: "${CORE_SERVICE_PORT:=8081}"
+: "${CORE_SERVICE_GRPC_PORT:=${GRPC_PORT:-9091}}"
 set +a
 NAMESPACE="${K8S_NAMESPACE:-microservices}"
-echo "Loaded environment. Namespace: $NAMESPACE"
+echo "Loaded ${ENV_FILE##*/}. Namespace: $NAMESPACE"
 
 echo ""
 echo "[2/7] Checking kubectl connection..."
