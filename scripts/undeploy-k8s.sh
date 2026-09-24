@@ -1,25 +1,25 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+K8S_DIR="$PROJECT_DIR/k8s"
+ENV_FILE="$K8S_DIR/.env"
+
 NAMESPACE="microservices"
+if [[ -f "$ENV_FILE" ]]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "$ENV_FILE"
+    set +a
+    NAMESPACE="${K8S_NAMESPACE:-microservices}"
+fi
 
 echo "=========================================="
 echo "Removing Microservices from Kubernetes"
 echo "=========================================="
 
-kubectl delete -f "$PROJECT_DIR/k8s/base/ingress.yaml" --ignore-not-found
-kubectl delete -f "$PROJECT_DIR/k8s/base/gateway-service.yaml" --ignore-not-found
-kubectl delete -f "$PROJECT_DIR/k8s/base/gateway-deployment.yaml" --ignore-not-found
-kubectl delete -f "$PROJECT_DIR/k8s/base/core-service-service.yaml" --ignore-not-found
-kubectl delete -f "$PROJECT_DIR/k8s/base/core-service-deployment.yaml" --ignore-not-found
-kubectl delete -f "$PROJECT_DIR/k8s/base/keycloak-service.yaml" --ignore-not-found
-kubectl delete -f "$PROJECT_DIR/k8s/base/keycloak-deployment.yaml" --ignore-not-found
-kubectl delete -f "$PROJECT_DIR/k8s/base/pvc.yaml" --ignore-not-found
-kubectl delete -f "$PROJECT_DIR/k8s/base/secrets.yaml" --ignore-not-found
-kubectl delete -f "$PROJECT_DIR/k8s/base/configmaps.yaml" --ignore-not-found
-kubectl delete -f "$PROJECT_DIR/k8s/base/namespace.yaml" --ignore-not-found
+kubectl delete namespace "$NAMESPACE" --ignore-not-found
 
 echo ""
 echo "=========================================="
